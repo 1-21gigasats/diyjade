@@ -26,9 +26,6 @@ jobs:
         latest_tag=$(git describe --tags `git rev-list --tags --max-count=1`)
         echo "LATEST_TAG=${latest_tag}" >> $GITHUB_ENV
 
-    - name: Output LATEST_TAG for debugging
-      run: echo "The latest tag is: ${{ env.LATEST_TAG }}"
-
     - name: Check if latest tag is already used
       id: check-tag
       run: |
