@@ -1,5 +1,4 @@
-name: Version Bump
-
+name: Version bump on upstream tag
 
 on:
   schedule:
