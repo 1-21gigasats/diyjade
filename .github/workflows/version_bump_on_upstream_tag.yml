@@ -39,6 +39,7 @@ jobs:
         else
           echo "Tag ${latest_tag} is not used in the code."
           echo "TAG_USED=false" >> $GITHUB_ENV
+        fi
 
     - name: Update version in files
       if: env.TAG_USED == 'false'
