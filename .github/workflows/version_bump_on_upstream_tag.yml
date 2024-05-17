@@ -1,5 +1,6 @@
 name: Version Bump
 
+
 on:
   schedule:
     - cron: '0 * * * *'  # Every hour
