@@ -1,0 +1,115 @@
+name: Version Bump on Upstream Tag
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # Every hour
+  workflow_dispatch:  # Allows manual triggering
+
+jobs:
+  version-bump:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+      with:
+        ref: master
+
+    - name: Setup Git
+      run: |
+        git config --global user.name 'github-actions[bot]'
+        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+    - name: Clone upstream repository
+      run: |
+        git clone https://github.com/Blockstream/Jade.git /tmp/upstream-repo
+        cd /tmp/upstream-repo
+        latest_tag=$(git describe --tags `git rev-list --tags --max-count=1`)
+        echo "LATEST_TAG=${latest_tag}" >> $GITHUB_ENV
+
+    - name: Output LATEST_TAG for debugging
+      run: echo "The latest tag is: ${{ env.LATEST_TAG }}"
+
+    - name: Check if latest tag is already used
+      id: check-tag
+      run: |
+        latest_tag=${{ env.LATEST_TAG }}
+        if grep -qr "jade_git_tag=\"${latest_tag}\"" .; then
+          echo "Tag ${latest_tag} is already used in the code."
+          echo "TAG_USED=true" >> $GITHUB_ENV
+        else
+          echo "Tag ${latest_tag} is not used in the code."
+          echo "TAG_USED=false" >> $GITHUB_ENV
+
+    - name: Update version in files
+      if: env.TAG_USED == 'false'
+      run: |
+        latest_tag=${{ env.LATEST_TAG }}
+        find . -type f -exec sed -i "s/jade_git_tag=\"[^\"]*\"/jade_git_tag=\"${latest_tag}\"/g" {} +
+
+    - name: Commit changes
+      if: env.TAG_USED == 'false'
+      run: |
+        git checkout -b version-bump-${{ env.LATEST_TAG }}
+        git add .
+        git commit -m "Bump version to ${{ env.LATEST_TAG }}"
+        git push origin version-bump-${{ env.LATEST_TAG }}
+
+    - name: Check for existing Pull Request
+      id: check-pr
+      if: env.TAG_USED == 'false'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const { context, github } = require('@actions/github');
+          const latestTag = process.env.LATEST_TAG;
+          const branchName = `version-bump-${latestTag}`;
+
+          const { data: pullRequests } = await github.rest.pulls.list({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            state: 'open'
+          });
+
+          const existingPR = pullRequests.find(pr => pr.head.ref === branchName);
+          if (existingPR) {
+            console.log(`Pull Request #${existingPR.number} already exists for branch ${branchName}`);
+            return { exists: true, number: existingPR.number };  // Return the PR number if it exists
+          } else {
+            return { exists: false };  // No existing PR found
+          }
+
+    - name: Create Pull Request
+      if: steps.check-pr.outputs.exists == 'false' && env.TAG_USED == 'false'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const { context, github } = require('@actions/github');
+          const latestTag = process.env.LATEST_TAG;
+          const prTitle = `Bump version to ${latestTag}`;
+          const prBody = `This PR updates the version to \`${latestTag}\`.`;
+
+          const response = await github.rest.pulls.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            title: prTitle,
+            head: `version-bump-${latestTag}`,
+            base: 'main',
+            body: prBody
+          });
+
+          console.log(`Created PR #${response.data.number}`);
+
+    - name: Notify on PR creation
+      if: steps.check-pr.outputs.exists == 'false' && env.TAG_USED == 'false'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const { context, github } = require('@actions/github');
+          const prNumber = response.data.number;
+          await github.rest.issues.createComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: prNumber,
+            body: `A new pull request has been created: #${prNumber}`
+          });
+
