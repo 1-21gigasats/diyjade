@@ -26,7 +26,7 @@ jobs:
     - name: Clone upstream repository
       run: |
         git clone https://github.com/Blockstream/Jade.git /tmp/upstream-repo
-        latest_tag=$(git -C /tmp/upstream-repo describe --tags `git rev-list --tags --max-count=1`)
+        latest_tag=$(cd /tmp/upstream-repo && git describe --tags `git rev-list --tags --max-count=1`)
         echo "LATEST_TAG=${latest_tag}" >> $GITHUB_ENV
 
     - name: Check if latest tag is already used
@@ -74,11 +74,11 @@ jobs:
       uses: actions/github-script@v6
       with:
         script: |
-          const { context: context1, github } = require('@actions/github');
+          const { context: context1, github1} = require('@actions/github');
           const latestTag = process.env.LATEST_TAG;
           const branchName = `version-bump-${latestTag}`;
 
-          const { data: pullRequests } = await github.rest.pulls.list({
+          const { data: pullRequests } = await github1.rest.pulls.list({
             owner: context1.repo.owner,
             repo: context1.repo.repo,
             state: 'open'
@@ -97,12 +97,12 @@ jobs:
       uses: actions/github-script@v6
       with:
         script: |
-          const { context: context2, github } = require('@actions/github');
+          const { context: context2, github2 } = require('@actions/github');
           const latestTag = process.env.LATEST_TAG;
           const prTitle = `Bump version to ${latestTag}`;
           const prBody = `This PR updates the version to \`${latestTag}\`.`;
 
-          const response = await github.rest.pulls.create({
+          const response = await github2.rest.pulls.create({
             owner: context2.repo.owner,
             repo: context2.repo.repo,
             title: prTitle,
@@ -118,9 +118,9 @@ jobs:
       uses: actions/github-script@v6
       with:
         script: |
-          const { context: context3, github } = require('@actions/github');
+          const { context: context3, github3} = require('@actions/github');
           const prNumber = response.data.number;
-          await github.rest.issues.createComment({
+          await github3.rest.issues.createComment({
             owner: context3.repo.owner,
             repo: context3.repo.repo,
             issue_number: prNumber,
