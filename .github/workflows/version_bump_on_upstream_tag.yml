@@ -26,8 +26,7 @@ jobs:
     - name: Clone upstream repository
       run: |
         git clone https://github.com/Blockstream/Jade.git /tmp/upstream-repo
-        cd /tmp/upstream-repo
-        latest_tag=$(git describe --tags `git rev-list --tags --max-count=1`)
+        latest_tag=$(git -C /tmp/upstream-repo describe --tags `git rev-list --tags --max-count=1`)
         echo "LATEST_TAG=${latest_tag}" >> $GITHUB_ENV
 
     - name: Check if latest tag is already used
