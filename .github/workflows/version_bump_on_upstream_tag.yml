@@ -37,7 +37,6 @@ jobs:
         if grep -qr "jade_git_tag=\"${latest_tag}\"" .; then
           echo "Tag ${latest_tag} is already used in the code."
           echo "TAG_USED=true" >> $GITHUB_ENV
-          exit 0
         else
           echo "Tag ${latest_tag} is not used in the code."
           echo "TAG_USED=false" >> $GITHUB_ENV
@@ -49,7 +48,7 @@ jobs:
         latest_tag=${{ env.LATEST_TAG }}
         if git ls-remote --exit-code --heads origin version-bump-${latest_tag}; then
           echo "Branch version-bump-${latest_tag} already exists."
-          exit 0
+          echo "BRANCH_EXISTS=true" >> $GITHUB_ENV
         else
           echo "Branch version-bump-${latest_tag} does not exist."
           echo "BRANCH_EXISTS=false" >> $GITHUB_ENV
