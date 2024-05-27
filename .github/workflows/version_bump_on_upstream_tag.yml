@@ -59,6 +59,7 @@ jobs:
         latest_tag=${{ env.LATEST_TAG }}
         branch_name=version-bump-${latest_tag}
         if [ "${{ env.BRANCH_EXISTS }}" == "true" ]; then
+          git fetch origin
           git checkout ${branch_name}
         else
           git checkout -b ${branch_name}
