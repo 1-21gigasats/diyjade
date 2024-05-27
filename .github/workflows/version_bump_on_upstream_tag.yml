@@ -53,29 +53,21 @@ jobs:
           echo "BRANCH_EXISTS=false" >> $GITHUB_ENV
         fi
 
-    - name: Create or update bump branch
-      if: env.TAG_USED == 'false'
+    - name: Create bump branch
+      if: env.TAG_USED == 'false' && env.BRANCH_EXISTS == 'false'
       run: |
         latest_tag=${{ env.LATEST_TAG }}
         branch_name=version-bump-${latest_tag}
-        if [ "${{ env.BRANCH_EXISTS }}" == "true" ]; then
-          git fetch origin
-          git checkout ${branch_name}
-        else
-          git checkout -b ${branch_name}
-        fi
+        git checkout -b ${branch_name}
+
         find . -type f -exec sed -i "s/jade_git_tag=\"[^\"]*\"/jade_git_tag=\"${latest_tag}\"/g" {} +
-        if git diff --quiet; then
-          git add .
-          git commit -m "Bump version to ${{ env.LATEST_TAG }}"
-          git push origin ${branch_name}
-        else
-          echo "no changes"
-        fi
+        git add .
+        git commit -m "Bump version to ${{ env.LATEST_TAG }}"
+        git push origin ${branch_name}
 
     - name: Check for existing Pull Request
       id: check-pr
-      if: env.TAG_USED == 'false'
+      if: env.TAG_USED == 'false' && env.BRANCH_EXISTS == 'false'
       uses: actions/github-script@v6
       with:
         script: |
